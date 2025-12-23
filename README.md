@@ -30,9 +30,13 @@ cd project-name
 ### Install dependencies:
 pip install -r requirements.txt
 
+---
+
 ## Usage
 Run the project:
 	python main.py
+
+---
 
 ## Project Structure
 CRC-Results-Engine/
@@ -42,13 +46,19 @@ CRC-Results-Engine/
 ├── requirements.txt
 └── main.py
 
+---
+
 ## Testing
 	pytest
+
+---
 
 ## Roadmap
 - PDF Splitter 
 - PDF Splitter + Basic automated mailing logic (predefined for students only)
 - Mailing logic upgraded for custom recipients selection (students, parents/guardians)
+
+---
 
 ## Contributing
 	Contributions are welcome!
@@ -58,9 +68,13 @@ CRC-Results-Engine/
 	- Push to the branch (git push origin feature/my-feature)
 	- Open a Pull Request
 
+---
+
 ## Author
 	GrandMEAN Research & Analytics
 	GitHub: @GrandMEAN-RA
+
+---
 
 ## Acknowledgements
 	Inspiration

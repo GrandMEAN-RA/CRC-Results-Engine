@@ -276,7 +276,7 @@ def create_gui():
             daemon=True
         ).start()
     
-    send_butn = ttk.Button(mail_frame, text="Send Emails", command=run_mail, state = 'disabled')
+    send_butn = ttk.Button(mail_frame, text="Dispatch Result Documents", command=run_mail, state = 'disabled')
     send_butn.pack(pady=5)    
 
     root.mainloop()
