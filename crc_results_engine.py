@@ -17,6 +17,8 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from PyPDF2 import PdfReader, PdfWriter
 from datetime import datetime
+from email.message import EmailMessage
+import smtplib
 
 # =====================================================
 # 📁 Output folder handling
@@ -59,6 +61,64 @@ def split_pdfs(input_dir, progress_bar, status_label, academic_session, term):
 
     status_label.config(text=f"Splitting complete: {total_files} files created.")
     messagebox.showinfo("Done", f"Total files created: {total_files}")
+
+# =====================================================
+# 🧾 Send Emails function with progress
+# =====================================================
+def send_emails(password_var, input_dir, progress_bar, status_label, term, academic_session):
+    
+    output_dir = ensure_output_folder(input_dir, academic_session, term)
+    email = 'opeyemi.sadiku@crcchristhill.org'
+    app_password = password_var
+    
+    try: 
+        # Connect to the mail server
+        smtp = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.ehlo()
+        
+        smtp.login(email, app_password) 
+        print("✅ Logged in successfully!")
+    
+        pdf_files = [f for f in os.listdir(output_dir) if f.lower().endswith(".pdf")]
+        maximum = len(pdf_files)
+        progress_bar["maximum"] = maximum
+        status_label.config(text=f"Processing {maximum} files >>>")
+        
+        session = str(term) + str(academic_session)
+        
+        sent_count = 0
+        for idx, pdf_file in enumerate(pdf_files, start=1):
+            student_name = pdf_file.replace(".pdf", "")
+            surname = student_name.split("_")[0].lower()
+            firstname = student_name.split("_")[1].lower()
+            
+            message_body = f"Dear {student_name},\n the entire management and staff of Christ  The Redeemer's College-Christhill warmly appreciate your efforts this term towards achieving good academic performance this term. We ubiquitously encourage you to push harder next term for better results. \n Please, find attached your results for {session} academic session"
+            
+            msg = EmailMessage()
+            msg["From"] = email
+            msg.set_content(message_body)
+            recipient = firstname + "." + surname + "@crcchristhill.org"
+            msg["To"] = recipient
+            msg["Subject"] = "Your Results Document"
+            
+            status_label.config(text=f"Sending {pdf_file} to {recipient}")
+            smtp.send_message(msg)
+            sent_count += 1
+            progress_bar["value"] = idx
+            status_label.config(text=f"Sent {idx}/{len(pdf_files)}: {pdf_file} to {recipient}")
+
+        smtp.quit()
+        status_label.config(text=f"All {sent_count} files mailed successfully!")
+        messagebox.showinfo("Done", f"All {sent_count} files mailed successfully!")
+    
+    except smtplib.SMTPAuthenticationError: 
+        status_label.config(text="❌ Authentication failed — please check your email or app password.")
+        print("❌ Authentication failed — please check your email or app password.") 
+    except Exception as e: 
+        status_label.config(text=f"❌ An error occurred! — {e} . Please check your internet connection.")
+        print(f"⚠️ An error occurred: {e}")
     
 # ===================================================== # 
 #🖥️ Splash Screen 
@@ -145,17 +205,21 @@ def create_gui():
     
     input_dir = tk.StringVar()
     
-    def validate_split_butn(*args):
+    def validate_butn(*args):
         split_butn.config(
-        state='normal' if input_dir.get() else 'disabled'
-    )
+            state='normal' if input_dir.get() else 'disabled'
+            )
+        send_butn.config(
+            state='normal' if password_var.get() else 'disabled'
+            )
         
-    input_dir.trace_add("write", validate_split_butn)
+    input_dir.trace_add("write", validate_butn)
     
     # --- Frames ---
     pdf_frame = tk.LabelFrame(root, text="PDF Splitter", bd=3, relief="ridge")
     pdf_frame.pack(padx=20, pady=10, fill="x")
-
+    mail_frame = tk.LabelFrame(root, text="Send Emails", bd=3, relief="ridge")
+    mail_frame.pack(padx=20, pady=10, fill="x")
     status_frame = tk.LabelFrame(root, text="Status", bd=3, relief="ridge")
     status_frame.pack(padx=20, pady=10, fill="x")
 
@@ -183,6 +247,37 @@ def create_gui():
     split_butn = ttk.Button(pdf_frame, text="Split PDFs",
                command=run_split, state = 'disabled')
     split_butn.pack(pady=5)
+
+    # --- Password & progress ---
+    password_var = tk.StringVar()
+    password_label = ttk.Label(mail_frame, text="Enter Email Password:")
+    password_label.pack(pady=5)
+    password_entry = ttk.Entry(mail_frame, textvariable=password_var, show="*")
+    password_entry.pack(pady=5)
+    toggle_button = ttk.Button(mail_frame, text="Show")
+    toggle_button.pack(pady=5)
+    
+    password_var.trace_add("write", validate_butn)
+    
+    def toggle_password():
+        if password_entry.cget("show") == "":
+            password_entry.config(show="*")
+            toggle_button.config(text="Show")
+        else:
+            password_entry.config(show="")
+            toggle_button.config(text="Hide")
+
+    toggle_button.config(command=toggle_password)
+    
+    def run_mail():
+        threading.Thread(
+            target=send_emails,
+            args=(password_var.get(), input_dir.get(), progress_bar, status_label, term, academic_session),
+            daemon=True
+        ).start()
+    
+    send_butn = ttk.Button(mail_frame, text="Send Emails", command=run_mail, state = 'disabled')
+    send_butn.pack(pady=5)    
 
     root.mainloop()
 
