@@ -1,13 +1,13 @@
 # CRC-Results-Engine
 
-CRC-Results-Engine is a native windows application designed, for Christ The Redeemer's College Christhill, to automate results documents preprocessing and dispatch
+CRC-Results-Engine is a native windows application developed, for Christ The Redeemer's College Christhill, to automate results and general documents preprocessing and dispatch
 
 ---
 
 ## 🚀 Features
 
 - Multifile, Multipage PDF splitting
-- bulk results e-mail dispatching to students
+- bulk results/documents e-mail dispatching to students (default) or custom recipients
 
 ---
 
@@ -22,8 +22,8 @@ CRC-Results-Engine is a native windows application designed, for Christ The Rede
 ## 📦 Installation
 
 Clone the repository:
-git clone https://github.com/your-username/project-name.git
-cd project-name
+git clone https://github.com/GrandMEAN-RA/CRC-Results-Engine.git
+cd CRC-Results-Engine
 
 ### Install dependencies:
 pip install -r requirements.txt
@@ -34,6 +34,8 @@ pip install -r requirements.txt
 Run the project:
 	python main.py
 
+Note:
+	If message/email body text are is left blank, the program switch to the default in-coded message body.
 ---
 
 ## Project Structure
@@ -54,7 +56,7 @@ CRC-Results-Engine/
 ## Roadmap
 - PDF Splitter 
 - PDF Splitter + Basic automated mailing logic (predefined for students only)
-- Mailing logic upgraded for custom recipients selection (students, parents/guardians)
+- Mailing logic upgraded for custom sender-email and recipients selection (students, recipients)
 
 ---
 
