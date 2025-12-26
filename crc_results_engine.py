@@ -65,10 +65,11 @@ def split_pdfs(input_dir, progress_bar, status_label, academic_session, term):
 # =====================================================
 # 🧾 Send Emails function with progress
 # =====================================================
-def send_emails(password_var, input_dir, progress_bar, status_label, term, academic_session):
+def send_emails(password_var, email_var, input_dir, msg_text, progress_bar, status_label, term, academic_session):
     
     output_dir = ensure_output_folder(input_dir, academic_session, term)
-    email = 'opeyemi.sadiku@crcchristhill.org'
+    
+    email = email_var if email_var else 'opeyemi.sadiku@crcchristhill.org'
     app_password = password_var
     
     try: 
@@ -94,11 +95,11 @@ def send_emails(password_var, input_dir, progress_bar, status_label, term, acade
             surname = student_name.split("_")[0].lower()
             firstname = student_name.split("_")[1].lower()
             
-            message_body = f"Dear {student_name},\n the entire management and staff of Christ  The Redeemer's College-Christhill warmly appreciate your efforts this term towards achieving good academic performance this term. We ubiquitously encourage you to push harder next term for better results. \n Please, find attached your results for {session} academic session"
+            msg_body = f"Dear {student_name},\n the entire management and staff of Christ  The Redeemer's College-Christhill warmly appreciate your efforts this term towards achieving good academic performance this term. We ubiquitously encourage you to push harder next term for better results. \n Please, find attached your results for {session} academic session"
             
             msg = EmailMessage()
             msg["From"] = email
-            msg.set_content(message_body)
+            msg.set_content(msg_text) if msg_text else msg.set_content(msg_body)
             recipient = firstname + "." + surname + "@crcchristhill.org"
             msg["To"] = recipient
             msg["Subject"] = "Your Results Document"
@@ -145,7 +146,7 @@ def show_splash(root, duration=2000):
     # --- Splash Content ---
     ttk.Label(
         splash,
-        text="DocuCore",
+        text="CRC Docs",
         font=("Segoe UI", 22, "bold")
     ).pack(pady=(50, 10))
 
@@ -210,7 +211,7 @@ def create_gui():
             state='normal' if input_dir.get() else 'disabled'
             )
         send_butn.config(
-            state='normal' if password_var.get() else 'disabled'
+            state='normal' if password_var.get() and email_var.get() else 'disabled'
             )
         
     input_dir.trace_add("write", validate_butn)
@@ -247,6 +248,15 @@ def create_gui():
     split_butn = ttk.Button(pdf_frame, text="Split PDFs",
                command=run_split, state = 'disabled')
     split_butn.pack(pady=5)
+    
+    # --- Sender Email & Message ---
+    email_var = tk.StringVar()
+    ttk.Label(mail_frame, text="Sender Email:").pack(pady=5)
+    sender_entry = ttk.Entry(mail_frame, width=50, textvariable=email_var)
+    sender_entry.pack(pady=5)
+    ttk.Label(mail_frame, text="Message/Email Body:").pack(pady=5)
+    msg_text = tk.Text(mail_frame, height=5, width=50)
+    msg_text.pack(pady=5)
 
     # --- Password & progress ---
     password_var = tk.StringVar()
@@ -272,11 +282,11 @@ def create_gui():
     def run_mail():
         threading.Thread(
             target=send_emails,
-            args=(password_var.get(), input_dir.get(), progress_bar, status_label, term, academic_session),
+            args=(password_var.get(), email_var.get(), input_dir.get(), msg_text, progress_bar, status_label, term, academic_session),
             daemon=True
         ).start()
     
-    send_butn = ttk.Button(mail_frame, text="Dispatch Result Documents", command=run_mail, state = 'disabled')
+    send_butn = ttk.Button(mail_frame, text="Dispatch Documents", command=run_mail, state = 'disabled')
     send_butn.pack(pady=5)    
 
     root.mainloop()
