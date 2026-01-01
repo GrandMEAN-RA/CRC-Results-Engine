@@ -57,6 +57,8 @@ CRC-Results-Engine/
 - PDF Splitter 
 - PDF Splitter + Basic automated mailing logic (predefined for students only)
 - Mailing logic upgraded for custom sender-email and recipients selection (students, recipients)
+- Mailing logic upgraded for custom message body 
+- Mailing logic ugraded for single-file attachment 
 
 ---
 

@@ -94,6 +94,7 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
             maximum = len(pdf_files)
             progress_bar["maximum"] = maximum
             status_label.config(text=f"Processing {maximum} files >>>")
+            print("not SFA")
             
             for idx, pdf_file in enumerate(pdf_files, start=1):
                 msg = EmailMessage()
@@ -139,17 +140,17 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
                     if not recipient:
                         continue
 
-                    msg["To"] = recipient
-                    msg.set_content(msg_text) if msg_text else msg.set_content(msg_body)
+                msg["To"] = recipient
+                msg.set_content(msg_text if msg_text else msg_body)
                     
-                    with open(os.path.join(output_dir, pdf_file), "rb") as f:
-                        msg.add_attachment(f.read(), maintype="application", subtype="pdf", filename=pdf_file)
+                with open(os.path.join(output_dir, pdf_file), "rb") as f:
+                    msg.add_attachment(f.read(), maintype="application", subtype="pdf", filename=pdf_file)
                     
-                    status_label.config(text=f"Sending {pdf_file} to {recipient}")
-                    smtp.send_message(msg)
-                    sent_count += 1
-                    progress_bar["value"] = idx
-                    status_label.config(text=f"Sent {idx}/{len(pdf_files)}: {pdf_file} to {recipient}")
+                status_label.config(text=f"Sending {pdf_file} to {recipient}")
+                smtp.send_message(msg)
+                sent_count += 1
+                progress_bar["value"] = idx
+                status_label.config(text=f"Sent {idx}/{len(pdf_files)}: {pdf_file} to {recipient}")
             
         elif sfa:
             file_name = sfa.split('/')[-1]
