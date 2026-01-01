@@ -33,8 +33,8 @@ pip install -r requirements.txt
 ## Usage
 Run the project:
 	python main.py
-
-Note:
+	
+	Note:
 	If message/email body text are is left blank, the program switch to the default in-coded message body.
 ---
 
