@@ -33,8 +33,13 @@ def ensure_output_folder(base_dir, academic_session, term):
 # =====================================================
 # 🧾 PDF Split function
 # =====================================================
-def split_pdfs(input_dir, progress_bar, status_label, academic_session, term):
+def split_pdfs(input_dir, chunk_check, chunk_var, progress_bar, status_label, academic_session, term):
     output_dir = ensure_output_folder(input_dir, academic_session, term)
+
+    #check = chunk_check.get()
+    chunk = int(chunk_var) if chunk_check == 1 else 2
+    print("chunk: ",chunk)
+    
     total_files = 0
     pdf_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
     progress_bar["maximum"] = len(pdf_files)
@@ -42,9 +47,9 @@ def split_pdfs(input_dir, progress_bar, status_label, academic_session, term):
     for idx, file_name in enumerate(pdf_files, start=1):
         pdf_path = os.path.join(input_dir, file_name)
         reader = PdfReader(pdf_path)
-        for i in range(0, len(reader.pages), 2):
+        for i in range(0, len(reader.pages), chunk):
             writer = PdfWriter()
-            for j in range(2):
+            for j in range(chunk):
                 if i+j < len(reader.pages):
                     writer.add_page(reader.pages[i+j])
             page_text = reader.pages[i].extract_text().splitlines()
@@ -63,38 +68,6 @@ def split_pdfs(input_dir, progress_bar, status_label, academic_session, term):
 
     status_label.config(text=f"Splitting complete: {total_files} files created.")
     messagebox.showinfo("Done", f"Total files created: {total_files}")
-
-# =====================================================
-# 🧪 Email & Password validation
-# =====================================================
-def validate_email(email,status_label):
-    #email = email_var.get()
-    VALID_DOMAIN = "@crcchristhill.org"
-    pattern = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
-    if not re.match(pattern, email):
-        status_label.config(text="Invalid email ❌", foreground="red")
-        return False
-    if not email.lower().endswith(VALID_DOMAIN) or email != "opeyemi.sadiku@crcchristhill.org":
-        messagebox.showwarning("Attention!", "Enter the dedicated official email") 
-        return False
-    if email == "opeyemi.sadiku@crcchristhill.org":
-        status_label.config(text="✔️ Valid email", foreground="green")
-        email = email.encode("utf-8").decode("utf-8")
-        return email
-
-def validate_password(password, status_label): 
-        if not password:
-            messagebox.showwarning("Password Missing", "Please enter your email app-password.")
-            return False # empty 
-        elif len(password) != 16: 
-            status_label.config(text=f"You have entered {len(password)} characters.\
-            App password MUST be 16 characters long.", foreground="red")
-            return None # too short return True
-        else:
-            status_label.config(text="✔️ Password OK!", foreground="green")
-            #ok_button.config(state="normal")
-            password = password.encode("utf-8").decode("utf-8")
-            return password
 
 # =====================================================
 # 🧾 Send Emails function with progress
@@ -141,7 +114,7 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
                 if category == "Students":
                     recipient = f"{firstname.lower()}.{surname.lower()}@crcchristhill.org"
                     msg["Subject"] = "Your Results Document"
-                    msg_body = f"Dear {student_name},\n the entire management and staff of Christ  The Redeemer's College-Christhill warmly         appreciate your efforts towards achieving good academic performance this term. We ubiquitously encourage you to push harder next term for better results. \n Please, find attached your results for {session} academic session"
+                    msg_body = f"Dear {student_name},\n the entire management and staff of Christ The Redeemer's College-Christhill warmly appreciate your efforts towards achieving good academic performance this term. We ubiquitously encourage you to push harder next term for better results. \n Please, find attached your results for {session} academic session"
                 elif category == "Recipients":
                     if cr_path.endswith(".xlsx"):
                         df = pd.read_excel(cr_path)
@@ -318,17 +291,75 @@ def create_gui():
     input_dir = tk.StringVar()
     sfa_file_path = tk.StringVar()
       
-    def validate_butn(*args):
-        #password = validate_password(password_var.get(), status_label)
-        #email = validate_email(email_var.get(), status_label)
+    # =====================================================
+    # 🧪 Email & Password validation
+    # =====================================================
+    VALID_DOMAIN = "@crcchristhill.org"
+    OFFICIAL_EMAIL = "opeyemi.sadiku@crcchristhill.org"
+
+    def is_valid_email(email: str) -> bool:
+        pattern = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+        if not email:
+            return False
+        if not re.match(pattern, email):
+            return False
+        if not email.lower().endswith(VALID_DOMAIN):
+            return False
+        if email.lower() != OFFICIAL_EMAIL:
+            return False
+        return True
+    
+    def validate_email_ui(event=None):
+        email = email_var.get().strip()
+        if not email:
+            status_label.config(text="", foreground="black")
+            return False
+        if is_valid_email(email):
+            status_label.config(text="✔️ Valid email", foreground="green")
+            return True
+        else:
+            status_label.config(text="Invalid email ❌", foreground="red")
+            return False
         
+    def is_valid_password(password: str) -> bool:
+        if not password:
+            return False
+        if len(password) != 16: 
+            return False
+        return True
+
+    def validate_password_ui(event=None):
+        password = password_var.get().strip()
+        if not password:
+            status_label.config(text="", foreground="black")
+            return False 
+        if is_valid_password(password): 
+            status_label.config(text="✔️ Password OK!", foreground="green")
+            password = password.encode("utf-8").decode("utf-8")
+            return password
+        else:
+            #messagebox.showwarning("Attention!", "Please enter the 16 characters app-password for the email.")
+            status_label.config(text=f"You have entered {len(password)} characters. App password MUST be 16 characters long.", foreground="red")
+            return False
+
+    def validate_butn(*args):
         split_butn.config(
             state='normal' if input_dir.get() else 'disabled'
             )
-        if msg_body_var.get()==1 and validate_email(email_var.get(), status_label)and validate_password(password_var.get(), status_label):
-            send_butn.config(state='normal' if msg_text.get("1.0", "end").strip() else 'disabled') 
-        elif validate_email(email_var.get(), status_label) and validate_password(password_var.get(), status_label):
-            send_butn.config(state='normal')
+        if msg_body_var.get()==1 and validate_email_ui()and validate_password_ui():
+            if category_var.get()=="Students":
+                send_butn.config(state='normal' if msg_text.get("1.0", "end").strip() else 'disabled')
+            elif category_var.get()=="Recipients" and validate_cr() != False:
+                send_butn.config(state='normal' if msg_text.get("1.0", "end").strip() else 'disabled')
+            else:
+                send_butn.config(state='disabled')
+        elif validate_email_ui() and validate_password_ui():
+            if category_var.get()=="Students":
+                send_butn.config(state='normal')
+            elif category_var.get()=="Recipients" and validate_cr() != False:
+                send_butn.config(state='normal')
+            else:
+                send_butn.config(state='disabled')
         else:
             send_butn.config(state='disabled')
 
@@ -337,7 +368,9 @@ def create_gui():
     # --- Frames ---
     pdf_frame = tk.LabelFrame(root, text="PDF Splitter", bd=3, relief="ridge")
     pdf_frame.pack(padx=20, pady=10, fill="x")
-    mail_frame = tk.LabelFrame(root, text="Send Emails", bd=3, relief="ridge")
+    check_frame = tk.LabelFrame(pdf_frame, text="custom settings", bd=1, relief="solid")
+    check_frame.pack(pady=2)
+    mail_frame = tk.LabelFrame(root, text="Email Dispatcher", bd=3, relief="ridge")
     mail_frame.columnconfigure(0, weight=1)  # left spacer
     mail_frame.columnconfigure(1, weight=0)  # content
     mail_frame.columnconfigure(2, weight=1)  # right spacer
@@ -360,8 +393,18 @@ def create_gui():
         
     # --- Check boxes ---
     sfa_var = tk.IntVar()
-    sfa_butn = ttk.Checkbutton(pdf_frame, text="Single file attachment", variable=sfa_var, command=update_label_text)
-    sfa_butn.pack(pady=5)
+    sfa_butn = ttk.Checkbutton(check_frame, text="Single file attachment", variable=sfa_var, command=update_label_text)
+    sfa_butn.grid(row=0, column=0, pady=2)
+
+    chunk_check = tk.IntVar()
+    chunk_butn = ttk.Checkbutton(check_frame, text="Set chunk size", variable=chunk_check)
+    chunk_butn.grid(row=0, column=1, padx=2, pady=2)
+
+    chunk_var = tk.StringVar()
+    chunk_entry = ttk.Entry(check_frame, width=5, textvariable=chunk_var)
+    chunk_entry.grid(row=0, column=2, pady=2, padx=1)
+    chunk_entry.grid_remove()
+    chunk_check.trace_add("write", lambda *args: chunk_entry.grid() if chunk_check.get()==1 else chunk_entry.grid_remove())
     
     file_label = ttk.Label(pdf_frame, text="Select input folder")
     file_label.pack(pady=5)
@@ -380,7 +423,7 @@ def create_gui():
     def run_split():
         threading.Thread(
             target=split_pdfs,
-            args=(input_dir.get(), progress_bar, status_label, academic_session, term),
+            args=(input_dir.get(),  chunk_check.get(), chunk_var.get(), progress_bar, status_label, academic_session, term),
             daemon=True
         ).start()
             
@@ -404,7 +447,7 @@ def create_gui():
             if file_path: 
                 ext = os.path.splitext(file_path)[1].lower() 
                 if ext in [".csv", ".xlsx"]: 
-                    messagebox.showinfo("Recipients File Loaded", f"Parent/Guardian file loaded:\n{file_path}") 
+                    messagebox.showinfo("Recipients File Loaded", f"Recipients file loaded:\n{file_path}") 
                     return file_path
                 elif ext not in [".csv", ".xlsx"]: 
                     messagebox.showinfo("Invalid file type!", "Ensure the selected file is a CSV or XLSX file")
@@ -415,7 +458,7 @@ def create_gui():
     
     # --- Recipient file upload ---
     cr_frame = ttk.Frame(recipient_frame)
-    upload_butn = ttk.Button(cr_frame, text="Upload Recipient File",
+    upload_butn = ttk.Button(cr_frame, text="Browse",
                             command=validate_cr )
     upload_butn.pack(pady=5)
     cr_frame.grid(row=1, column=0, columnspan=2)
@@ -428,8 +471,8 @@ def create_gui():
     ttk.Label(mail_frame, text="Sender Email:").grid(row=3, column=1, pady=5)
     sender_entry = ttk.Entry(mail_frame, width=50, textvariable=email_var)
     sender_entry.grid(row=4, column=1, pady=5)
-    email_var.trace_add("write", lambda *args: validate_email(email_var.get(),status_label))
-    email_var.trace_add("write", validate_butn)
+    sender_entry.bind("<FocusOut>", validate_email_ui)
+    sender_entry.bind("<KeyRelease>", validate_butn)
     
     msg_body_var = tk.IntVar()
     msg_body = ttk.Checkbutton(mail_frame, text="Set message body text", variable=msg_body_var)
@@ -458,15 +501,14 @@ def create_gui():
 
     # --- Password & progress ---
     password_var = tk.StringVar()
-    password_var.trace_add("write", lambda *args: validate_password(password_var.get(),status_label))
-    password_label = ttk.Label(mail_frame, text="Enter Email Password:")
+    password_label = ttk.Label(mail_frame, text="Enter 16-character Email App Password:")
     password_label.grid(row=8, column=1, pady=2)
     password_entry = ttk.Entry(mail_frame, width=50, textvariable=password_var, show="*")
     password_entry.grid(row=9, column=1, pady=2)
+    password_entry.bind("<FocusOut>", validate_password_ui)
+    password_entry.bind("<KeyRelease>", validate_butn)
     toggle_button = ttk.Button(mail_frame, text="Show")
     toggle_button.grid(row=10, column=1, pady=2)
-    
-    password_var.trace_add("write", validate_butn)
     
     def toggle_password():
         if password_entry.cget("show") == "":

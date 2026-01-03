@@ -60,6 +60,7 @@ CRC-Results-Engine/
 - Mailing logic upgraded for custom message body 
 - Mailing logic ugraded for single-file attachment 
 - Mailing logic upgraded with email and password validation
+- PDF Splitter upgraded with custom split chunk size.
 
 ---
 
