@@ -11,6 +11,7 @@ Now with Email Sending Progress Bar
 """
 
 import os
+import re
 import threading
 import pandas as pd
 from pathlib import Path
@@ -62,6 +63,38 @@ def split_pdfs(input_dir, progress_bar, status_label, academic_session, term):
 
     status_label.config(text=f"Splitting complete: {total_files} files created.")
     messagebox.showinfo("Done", f"Total files created: {total_files}")
+
+# =====================================================
+# 🧪 Email & Password validation
+# =====================================================
+def validate_email(email,status_label):
+    #email = email_var.get()
+    VALID_DOMAIN = "@crcchristhill.org"
+    pattern = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+    if not re.match(pattern, email):
+        status_label.config(text="Invalid email ❌", foreground="red")
+        return False
+    if not email.lower().endswith(VALID_DOMAIN) or email != "opeyemi.sadiku@crcchristhill.org":
+        messagebox.showwarning("Attention!", "Enter the dedicated official email") 
+        return False
+    if email == "opeyemi.sadiku@crcchristhill.org":
+        status_label.config(text="✔️ Valid email", foreground="green")
+        email = email.encode("utf-8").decode("utf-8")
+        return email
+
+def validate_password(password, status_label): 
+        if not password:
+            messagebox.showwarning("Password Missing", "Please enter your email app-password.")
+            return False # empty 
+        elif len(password) != 16: 
+            status_label.config(text=f"You have entered {len(password)} characters.\
+            App password MUST be 16 characters long.", foreground="red")
+            return None # too short return True
+        else:
+            status_label.config(text="✔️ Password OK!", foreground="green")
+            #ok_button.config(state="normal")
+            password = password.encode("utf-8").decode("utf-8")
+            return password
 
 # =====================================================
 # 🧾 Send Emails function with progress
@@ -286,12 +319,15 @@ def create_gui():
     sfa_file_path = tk.StringVar()
       
     def validate_butn(*args):
+        #password = validate_password(password_var.get(), status_label)
+        #email = validate_email(email_var.get(), status_label)
+        
         split_butn.config(
             state='normal' if input_dir.get() else 'disabled'
             )
-        if msg_body_var.get()==1 and password_var.get() and email_var.get():
+        if msg_body_var.get()==1 and validate_email(email_var.get(), status_label)and validate_password(password_var.get(), status_label):
             send_butn.config(state='normal' if msg_text.get("1.0", "end").strip() else 'disabled') 
-        elif password_var.get() and email_var.get():
+        elif validate_email(email_var.get(), status_label) and validate_password(password_var.get(), status_label):
             send_butn.config(state='normal')
         else:
             send_butn.config(state='disabled')
@@ -392,6 +428,7 @@ def create_gui():
     ttk.Label(mail_frame, text="Sender Email:").grid(row=3, column=1, pady=5)
     sender_entry = ttk.Entry(mail_frame, width=50, textvariable=email_var)
     sender_entry.grid(row=4, column=1, pady=5)
+    email_var.trace_add("write", lambda *args: validate_email(email_var.get(),status_label))
     email_var.trace_add("write", validate_butn)
     
     msg_body_var = tk.IntVar()
@@ -421,6 +458,7 @@ def create_gui():
 
     # --- Password & progress ---
     password_var = tk.StringVar()
+    password_var.trace_add("write", lambda *args: validate_password(password_var.get(),status_label))
     password_label = ttk.Label(mail_frame, text="Enter Email Password:")
     password_label.grid(row=8, column=1, pady=2)
     password_entry = ttk.Entry(mail_frame, width=50, textvariable=password_var, show="*")
