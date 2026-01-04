@@ -77,7 +77,7 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
     sfa = sfa_file_path
     category = category_var
     cr_path = cr_file_path
-    email = email_var if email_var else 'opeyemi.sadiku@crcchristhill.org'
+    email = email_var if email_var else 'results@crcchristhill.org'
     app_password = password_var
     
     try: 
@@ -295,7 +295,7 @@ def create_gui():
     # 🧪 Email & Password validation
     # =====================================================
     VALID_DOMAIN = "@crcchristhill.org"
-    OFFICIAL_EMAIL = "opeyemi.sadiku@crcchristhill.org"
+    OFFICIAL_EMAIL = "results@crcchristhill.org"
 
     def is_valid_email(email: str) -> bool:
         pattern = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
