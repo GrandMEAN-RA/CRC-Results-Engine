@@ -25,11 +25,6 @@ from PyPDF2 import PdfReader, PdfWriter
 from datetime import datetime
 from email.message import EmailMessage
 import smtplib
-<<<<<<< HEAD
-
-# =====================================================
-# 📁 Output folder handling
-=======
 from licenser import bootstrap_license, ensure_license, get_branding, check_license
 from licenser import show_expiry_warning, apply_license_renewal
 from admin_override import validate_admin_key
@@ -46,7 +41,6 @@ license_status = ensure_license(fernet, BASE_PATH) #Only validate existing licen
 
 # =====================================================
 # Output folder handling
->>>>>>> updates
 # =====================================================
 def ensure_output_folder(base_dir, academic_session, term):
     output_dir = Path(base_dir) / academic_session / term
@@ -54,23 +48,12 @@ def ensure_output_folder(base_dir, academic_session, term):
     return output_dir
 
 # =====================================================
-<<<<<<< HEAD
 # 🧾 PDF Split function
-# =====================================================
-def split_pdfs(input_dir, chunk_check, chunk_var, progress_bar, status_label, academic_session, term):
-    output_dir = ensure_output_folder(input_dir, academic_session, term)
-
-    #check = chunk_check.get()
-    chunk = int(chunk_var) if chunk_check == 1 else 2
-    print("chunk: ",chunk)
-=======
-# PDF Split function
 # =====================================================
 def split_pdfs(input_dir, chunk_var, progress_bar, status_label, academic_session, term):
     output_dir = ensure_output_folder(input_dir, academic_session, term)
 
     chunk = int(chunk_var) if chunk_var != 'chunk size'  else 2
->>>>>>> updates
     
     total_files = 0
     pdf_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
@@ -86,15 +69,10 @@ def split_pdfs(input_dir, chunk_var, progress_bar, status_label, academic_sessio
                     writer.add_page(reader.pages[i+j])
             page_text = reader.pages[i].extract_text().splitlines()
             student_name = page_text[3].strip().replace(" ", "_") if len(page_text) > 3 else f"student_{i//2 + 1}"
-<<<<<<< HEAD
-            output_pdf = output_dir / f"{student_name}.pdf"
-            output_pdf.parent.mkdir(parents=True, exist_ok=True)
-=======
             
             output_pdf = output_dir / f"{student_name}.pdf"
             output_pdf.parent.mkdir(parents=True, exist_ok=True)
         
->>>>>>> updates
             if output_pdf.exists():
                 output_pdf.unlink()
             with open(output_pdf, "wb") as f:
@@ -107,17 +85,11 @@ def split_pdfs(input_dir, chunk_var, progress_bar, status_label, academic_sessio
 
     status_label.config(text=f"Splitting complete: {total_files} files created.")
     messagebox.showinfo("Done", f"Total files created: {total_files}")
-<<<<<<< HEAD
-
-# =====================================================
-# 🧾 Send Emails function with progress
-=======
     log_event(event="PDF_SPLIT", detail=f"Input folder: {input_dir}", base_path=BASE_PATH)
     track("PDF_SPLIT")
 
 # =====================================================
 # Send Emails function with progress
->>>>>>> updates
 # =====================================================
 def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var, cr_file_path, msg_text, progress_bar, status_label, term, academic_session):
     
@@ -175,11 +147,7 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
                     for col in df.columns:
                         if col.lower() in ("students","students name","wards","child","wards' name","child's name","students' name","student's name"):
                             student_col = col
-<<<<<<< HEAD
-                        if col.lower() in ("email","emails","mails","parent mail","parents email","parent/guardian email","parents/guardian e-mail"):
-=======
                         if col.lower() in ("email","emails","mails","parent mail","parents email","parent/guardian email","parents/guardians e-mail"):
->>>>>>> updates
                             email_col = col
                 
                     row = pd.DataFrame()
@@ -208,14 +176,10 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
                 sent_count += 1
                 progress_bar["value"] = idx
                 status_label.config(text=f"Sent {idx}/{len(pdf_files)}: {pdf_file} to {recipient}")
-<<<<<<< HEAD
-            
-=======
                 log_event(event="EMAIL_SENT", detail=f"File: {pdf_file} | Recipient: {recipient}", base_path=BASE_PATH)
                 track("EMAIL_SENT")
                 track("MULTI-FILE SPLIT OPERATION")
                 
->>>>>>> updates
         elif sfa:
             file_name = sfa.split('/')[-1]
             msg_body = "Please refer to the attached document. \n Regards."
@@ -252,14 +216,10 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
                         sent_count += 1
                         progress_bar["value"] = sent_count
                         status_label.config(text=f"Sent {sent_count}/{maximum}: {file_name} to {recipient}")
-<<<<<<< HEAD
-            
-=======
                         log_event(event="EMAIL_SENT", detail=f"File: {file_name} | Recipient: {recipient}", base_path=BASE_PATH)
                         track("EMAIL_SENT")
                         track("SINGLE_FILE_ATTACHMENT")
                     
->>>>>>> updates
         smtp.quit()
         status_label.config(text=f"All {sent_count} files mailed successfully!")
         messagebox.showinfo("Done", f"All {sent_count} files mailed successfully!")
@@ -272,11 +232,7 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
         print(f"⚠️ An error occurred: {e}")
     
 # ===================================================== # 
-<<<<<<< HEAD
-#🖥️ Splash Screen 
-=======
 # Splash Screen 
->>>>>>> updates
 # ===================================================== 
 def show_splash(root, duration=2000):
     """
@@ -334,22 +290,6 @@ def show_splash(root, duration=2000):
     root.after(duration, close_splash)
         
 # =====================================================
-<<<<<<< HEAD
-# 🖥 GUI
-# =====================================================
-def create_gui():
-    
-    # show splash first 
-    root = tk.Tk()
-    root.withdraw()  # Hide main window initially
-
-    show_splash(root, duration=2500)
-
-    root.title("CRC Doc")
-    #root.geometry("500x700")
-    root.resizable(True, False)
-
-=======
 # GUI
 # =====================================================
 def create_gui():
@@ -436,7 +376,6 @@ def create_gui():
     menubar.add_cascade(label="Help", menu=help_menu)
     root.config(menu=menubar)
 
->>>>>>> updates
     # Academic session
     month, year = datetime.now().month, datetime.now().year
     if month >= 9:
@@ -450,11 +389,7 @@ def create_gui():
     sfa_file_path = tk.StringVar()
       
     # =====================================================
-<<<<<<< HEAD
-    # 🧪 Email & Password validation
-=======
     # Validation logic
->>>>>>> updates
     # =====================================================
     VALID_DOMAIN = "@crcchristhill.org"
     OFFICIAL_EMAIL = "results@crcchristhill.org"
@@ -500,31 +435,10 @@ def create_gui():
             password = password.encode("utf-8").decode("utf-8")
             return password
         else:
-<<<<<<< HEAD
-            #messagebox.showwarning("Attention!", "Please enter the 16 characters app-password for the email.")
-=======
->>>>>>> updates
             status_label.config(text=f"You have entered {len(password)} characters. App password MUST be 16 characters long.", foreground="red")
             return False
 
     def validate_butn(*args):
-<<<<<<< HEAD
-        split_butn.config(
-            state='normal' if input_dir.get() else 'disabled'
-            )
-        if msg_body_var.get()==1 and validate_email_ui()and validate_password_ui():
-            if category_var.get()=="Students":
-                send_butn.config(state='normal' if msg_text.get("1.0", "end").strip() else 'disabled')
-            elif category_var.get()=="Recipients" and validate_cr() != False:
-                send_butn.config(state='normal' if msg_text.get("1.0", "end").strip() else 'disabled')
-            else:
-                send_butn.config(state='disabled')
-        elif validate_email_ui() and validate_password_ui():
-            if category_var.get()=="Students":
-                send_butn.config(state='normal')
-            elif category_var.get()=="Recipients" and validate_cr() != False:
-                send_butn.config(state='normal')
-=======
         if custom_var.get() == 'sfa':
             split_butn.config(state='disabled')
         if custom_var.get() == 'chunk' and input_dir.get():
@@ -550,19 +464,13 @@ def create_gui():
                     send_butn.config(state='normal')
                 else:
                     send_butn.config(state='disabled')
->>>>>>> updates
             else:
                 send_butn.config(state='disabled')
         else:
             send_butn.config(state='disabled')
-<<<<<<< HEAD
-
-    input_dir.trace_add("write", validate_butn)
-=======
                  
     input_dir.trace_add("write", validate_butn)
     sfa_file_path.trace_add("write", validate_butn)
->>>>>>> updates
     
     # --- Frames ---
     pdf_frame = tk.LabelFrame(root, text="PDF Splitter", bd=3, relief="ridge")
@@ -581,9 +489,6 @@ def create_gui():
 
     # --- PDF Splitter ---
     def update_label_text():
-<<<<<<< HEAD
-        if sfa_var.get() == 1:
-=======
         if license_status["expired"]:  #Check license
             custom_var.set('sfa')
             sfa_butn.config(state="disabled")
@@ -602,7 +507,6 @@ def create_gui():
 
         # Normal behaviour
         if custom_var.get() == 'sfa':
->>>>>>> updates
             file_label.config(text="Select file to attach:")
             file_entry.config(textvariable=sfa_file_path)
             student_check.config(text="",state='disable')
@@ -611,22 +515,6 @@ def create_gui():
             file_entry.config(textvariable=input_dir)
             student_check.config(text="Students",state='normal')
         
-<<<<<<< HEAD
-    # --- Check boxes ---
-    sfa_var = tk.IntVar()
-    sfa_butn = ttk.Checkbutton(check_frame, text="Single file attachment", variable=sfa_var, command=update_label_text)
-    sfa_butn.grid(row=0, column=0, pady=2)
-
-    chunk_check = tk.IntVar()
-    chunk_butn = ttk.Checkbutton(check_frame, text="Set chunk size", variable=chunk_check)
-    chunk_butn.grid(row=0, column=1, padx=2, pady=2)
-
-    chunk_var = tk.StringVar()
-    chunk_entry = ttk.Entry(check_frame, width=5, textvariable=chunk_var)
-    chunk_entry.grid(row=0, column=2, pady=2, padx=1)
-    chunk_entry.grid_remove()
-    chunk_check.trace_add("write", lambda *args: chunk_entry.grid() if chunk_check.get()==1 else chunk_entry.grid_remove())
-=======
     # --- User Parameters ---
     custom_var = tk.StringVar(value="None")
     custom_var.trace_add("write", validate_butn)
@@ -645,7 +533,6 @@ def create_gui():
     chunk_entry.grid_remove()
     custom_var.trace_add("write", lambda *args: chunk_entry.grid() if custom_var.get()=='chunk' else chunk_entry.grid_remove())
     custom_var.trace_add("write", lambda *args: update_label_text())
->>>>>>> updates
     
     file_label = ttk.Label(pdf_frame, text="Select input folder")
     file_label.pack(pady=5)
@@ -653,24 +540,13 @@ def create_gui():
     file_entry.pack(pady=5)
     file_entry.config(textvariable=input_dir)
     
-<<<<<<< HEAD
-    browse_butn = ttk.Button(pdf_frame, text="Browse", command=lambda: input_dir.set(filedialog.askdirectory()) if sfa_var.get() == 0 else sfa_file_path.set(filedialog.askopenfilename()))
-=======
     browse_butn = ttk.Button(pdf_frame, text="Browse", command=lambda: input_dir.set(filedialog.askdirectory()) if custom_var.get() == 'chunk' else sfa_file_path.set(filedialog.askopenfilename()))
->>>>>>> updates
     browse_butn.pack(pady=5)
 
     progress_bar = ttk.Progressbar(status_frame, orient="horizontal", length=500, mode="determinate")
     progress_bar.pack(pady=5)
     status_label = ttk.Label(status_frame, text="Status: Waiting")
     status_label.pack(pady=5)
-<<<<<<< HEAD
-    
-    def run_split():
-        threading.Thread(
-            target=split_pdfs,
-            args=(input_dir.get(),  chunk_check.get(), chunk_var.get(), progress_bar, status_label, academic_session, term),
-=======
 
     #Split thread
     def run_split():
@@ -684,7 +560,6 @@ def create_gui():
         threading.Thread(
             target=split_pdfs,
             args=(input_dir.get(), chunk_var.get(), progress_bar, status_label, academic_session, term),
->>>>>>> updates
             daemon=True
         ).start()
             
@@ -694,12 +569,8 @@ def create_gui():
     
     category_var = tk.StringVar(value="None")
     cr_file_path = tk.StringVar()
-<<<<<<< HEAD
-    
-=======
 
     #Upload recipient file
->>>>>>> updates
     def validate_cr():
         messagebox.showinfo("Attention!", "Please select a CSV or XLSX file")
         cr_ok = category_var.get() == "Recipients"
@@ -722,10 +593,6 @@ def create_gui():
                 messagebox.showinfo("Attention!", "Select a file and ensure the selected file is a CSV or XLSX file")
                 return False
     
-<<<<<<< HEAD
-    # --- Recipient file upload ---
-=======
->>>>>>> updates
     cr_frame = ttk.Frame(recipient_frame)
     upload_butn = ttk.Button(cr_frame, text="Browse",
                             command=validate_cr )
@@ -735,11 +602,7 @@ def create_gui():
     category_var.trace_add("write", lambda *args: cr_frame.grid() if category_var.get()=="Recipients" else cr_frame.grid_remove())
     category_var.trace_add("write", lambda *args: validate_butn())
     
-<<<<<<< HEAD
-    # --- Sender Email & Message ---
-=======
     # --- Sender Email & Message body ---
->>>>>>> updates
     email_var = tk.StringVar()
     ttk.Label(mail_frame, text="Sender Email:").grid(row=3, column=1, pady=5)
     sender_entry = ttk.Entry(mail_frame, width=50, textvariable=email_var)
@@ -792,12 +655,8 @@ def create_gui():
             toggle_button.config(text="Hide")
 
     toggle_button.config(command=toggle_password)
-<<<<<<< HEAD
-    
-=======
 
     #Email dispath thread
->>>>>>> updates
     def run_mail():
         threading.Thread(
             target=lambda: send_emails(password_var.get(), email_var.get(), input_dir.get(), sfa_file_path.get(), category_var.get(), cr_file_path.get(), msg_text.get("1.0","end-1c"), progress_bar, status_label, term, academic_session),
@@ -805,11 +664,7 @@ def create_gui():
         ).start()
     
     send_butn = ttk.Button(mail_frame, text="Dispatch Documents", command=run_mail, state = 'disabled')
-<<<<<<< HEAD
-    send_butn.grid(row=11, column=1, pady=5)    
-=======
     send_butn.grid(row=11, column=1, pady=5)
->>>>>>> updates
 
     root.mainloop()
 
