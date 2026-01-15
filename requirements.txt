@@ -1,0 +1,7 @@
+
+pandas
+PyPDF2
+reportlab
+cryptography
+matplotlib
+python-dateutil

@@ -61,6 +61,11 @@ CRC-Results-Engine/
 - Mailing logic ugraded for single-file attachment 
 - Mailing logic upgraded with email and password validation
 - PDF Splitter upgraded with custom split chunk size.
+<<<<<<< HEAD
+=======
+- Help menu for license information and analytics added
+- License logic integration 
+>>>>>>> updates
 
 ---
 
