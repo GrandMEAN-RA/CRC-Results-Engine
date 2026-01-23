@@ -31,6 +31,8 @@ from admin_override import validate_admin_key
 from audit_logger import log_event
 from dashboard_ui import open_dashboard
 from usage_analytics import track
+from dropbox_service import auto_uploader
+from whatsapp_service import send_whatsapp
 
 # =====================================================
 # Auto-generate license
@@ -91,13 +93,18 @@ def split_pdfs(input_dir, chunk_var, progress_bar, status_label, academic_sessio
 # =====================================================
 # Send Emails function with progress
 # =====================================================
-def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var, cr_file_path, msg_text, progress_bar, status_label, term, academic_session):
+def send_emails(password_var, email_var, input_dir, whatsapp_var, sfa_file_path, category_var, cr_file_path, msg_text, progress_bar, status_label, term, academic_session):
     
     sfa = sfa_file_path
     category = category_var
     cr_path = cr_file_path
     email = email_var if email_var else 'results@crcchristhill.org'
     app_password = password_var
+
+    output_dir = ensure_output_folder(input_dir, academic_session, term) if not sfa else sfa_file_path
+
+    if whatsapp_var:
+         media_link = auto_uploader(output_dir, term, academic_session, sfa)
     
     try: 
         # Connect to the mail server
@@ -112,10 +119,10 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
         sent_count = 0
         
         if not sfa:
-            output_dir = ensure_output_folder(input_dir, academic_session, term)
+            #output_dir = ensure_output_folder(input_dir, academic_session, term)
             pdf_files = [f for f in os.listdir(output_dir) if f.lower().endswith(".pdf")]
             
-            session = str(term) + str(academic_session)
+            session = str(term) + " " + str(academic_session)
             maximum = len(pdf_files)
             progress_bar["maximum"] = maximum
             status_label.config(text=f"Processing {maximum} files >>>")
@@ -129,12 +136,15 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
                 firstname = student_name.split("_")[1].lower()
                 
                 recipient = None
+                print("Student name: ",student_name)
                 
                 if category == "Students":
                     recipient = f"{firstname.lower()}.{surname.lower()}@crcchristhill.org"
-                    msg["Subject"] = "Your Results Document"
-                    msg_body = f"Dear {student_name},\n the entire management and staff of Christ The Redeemer's College-Christhill warmly appreciate your efforts towards achieving good academic performance this term. We ubiquitously encourage you to push harder next term for better results. \n Please, find attached your results for {session} academic session"
+                    msg["Subject"] = "Your {session} Results Document"
+                    msg_body = f"Dear {student_name.replace("_","")},\n the entire management and staff of Christ The Redeemer's College-Christhill warmly appreciate your efforts towards achieving good academic performance this term. We ubiquitously encourage you to push harder next term for better results. \n Please, find attached your results for {session} academic session"
+                    print("Recipient Category: ",category)
                 elif category == "Recipients":
+                    print("This is recipient debug operation 1")
                     if cr_path.endswith(".xlsx"):
                         df = pd.read_excel(cr_path)
                     elif cr_path.endswith(".csv"):
@@ -145,25 +155,36 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
                     student_col = email_col = None
                     
                     for col in df.columns:
-                        if col.lower() in ("students","students name","wards","child","wards' name","child's name","students' name","student's name"):
+                        if col.lower() in ("students","students name","student name","wards","child","wards' name","child's name","students' name","student's name"):
                             student_col = col
-                        if col.lower() in ("email","emails","mails","parent mail","parents email","parent/guardian email","parents/guardians e-mail"):
+                        elif col.lower() in ("email","emails","mails","parent mail","parents email","parent or guardian email","parents or guardians e-mail"):
                             email_col = col
-                
-                    row = pd.DataFrame()
+                        elif col.lower() in ("phone number","phone_number","phone no","phone_no","contact number","contact_no", "whatsapp number", "whatsapp no"):
+                            phone_col = col
+                    print("student_column: ",student_col,"\n email_column: ",email_col, "\n phone_column: ",phone_col)
+                    row_email = pd.DataFrame()
+                    row_phone = pd.DataFrame()
+                    
                     if student_col and email_col:
-                        row = df[
+                        row_email = df[
                             df[student_col].astype(str).str.lower()
                             == student_name.replace("_", " ").lower()
                             ]
-                    
-                    if not row.empty:
-                        recipient = row.iloc[0][email_col]
-                        msg["Subject"] = f"Results Document for {student_name}"
-                        msg_body = f"Dear Mr. & Mrs. {surname},\n the entire management and staff of Christ  The Redeemer's College-Christhill warmly appreciate {firstname}'s efforts towards achieving good academic performance this term. We ubiquitously appreciate you also for your investments financially and otherwise and commitment to responding promptly to the school's demands to this regards. We believe next term will be better than this. \n Please, find attached {firstname}'s results for {session} academic session"
-                    
+                        print("Grabed parent's email")
+                    if student_col and phone_col:
+                        row_phone = df[
+                            df[student_col].astype(str).str.lower()
+                            == student_name.replace("_", " ").lower()
+                            ]
+                        print("Grabed parent's phone")
+                    if not row_email.empty:
+                        recipient = row_email.iloc[0][email_col]
+                        msg["Subject"] = f"{session} Results Document for {student_name}"
+                        msg_body = f"Dear Mr. & Mrs. {surname},\n the entire management and staff of Christ  The Redeemer's College-Christhill warmly appreciate {firstname}'s efforts towards achieving good academic performance this term. We ubiquitously appreciate you also for your investments financially, and commitment to responding promptly to the school's demands to this regards. We believe next term will be better than this. \n Please, find attached {firstname}'s results for {session} academic session"
+                        print("created recipients")
                     if not recipient:
                         continue
+                    print("Recipient Category: ",category)
 
                 msg["To"] = recipient
                 msg.set_content(msg_text if msg_text else msg_body)
@@ -173,6 +194,19 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
                     
                 status_label.config(text=f"Sending {pdf_file} to {recipient}")
                 smtp.send_message(msg)
+                print("Mail Service executed")
+                if whatsapp_var:
+                    if not row_phone.empty:
+                        phone = row_phone.iloc[0][phone_col]
+                        media_url = media_link[pdf_file]
+                        message = f"Dear Mr. & Mrs. {surname},\n the entire management and staff of Christ The Redeemer's College-Christhill warmly appreciate {firstname}'s efforts towards achieving good academic performance this term. We ubiquitously appreciate you also for your investments financially, and commitment to responding promptly to the school's demands to this regards. We believe next term will be better than this. \n Please, download {session} result document for {student_name} here: {media_url}"
+                        
+                    if not phone:
+                        continue
+                    
+                    send_whatsapp(student_name, phone, message)
+                    print("whatsapp service executed")
+                
                 sent_count += 1
                 progress_bar["value"] = idx
                 status_label.config(text=f"Sent {idx}/{len(pdf_files)}: {pdf_file} to {recipient}")
@@ -183,7 +217,7 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
         elif sfa:
             file_name = sfa.split('/')[-1]
             msg_body = "Please refer to the attached document. \n Regards."
-            
+            print(sfa)
             if cr_path.endswith(".xlsx"):
                 df = pd.read_excel(cr_path)
             elif cr_path.endswith(".csv"):
@@ -192,37 +226,55 @@ def send_emails(password_var, email_var, input_dir, sfa_file_path, category_var,
                 raise ValueError("Recipients file must be CSV or XLSX")
             
             for col in df.columns:
-                if col.lower() in ("email","emails","mails","parent mail","parents email","parent/guardian email","parents/guardian e-mail"):                  
-                    maximum = df[col].shape[0]
+                if col.lower() in ("email","emails","mails","parent mail","parents email","parent/guardian email","parents/guardian e-mail"):
+                    mail_col = col
+                    maximum = df[mail_col].shape[0]
                     progress_bar["maximum"] = maximum
                     status_label.config(text=f"Processing {maximum} files >>>")
-                    for item in df[col]:
-                        msg = EmailMessage()
-                        msg["From"] = email
-                        recipient = item
-                        msg["Subject"] = "Document attached"
-                        msg.set_content(msg_text if msg_text else msg_body)
-                              
-                        if not recipient:
-                            continue
+                    
+                elif col.lower() in ("phone number","phone_number","phone no","phone_no","contact number","contact_no", "whatsapp number", "whatsapp no"):
+                    phone_col = col
+                    
+            for item in df[mail_col]:
+                msg = EmailMessage()
+                msg["From"] = email
+                recipient = item
+                msg["Subject"] = "Document attached"
+                msg.set_content(msg_text if msg_text else msg_body)
+                      
+                if not recipient:
+                    continue
 
-                        msg["To"] = recipient
+                msg["To"] = recipient
+                
+                with open(sfa, "rb") as f:
+                    msg.add_attachment(f.read(), maintype="application", subtype="pdf", filename=file_name)
+                
+                status_label.config(text=f"Sending {file_name} to {recipient}")
+                smtp.send_message(msg)
+                print("Mail Service executed")
+                if whatsapp_var:
+                    phone = df.loc[df[mail_col] == item, phone_col].values[0]
+                    media_url = media_link[filename]
+                    message = msg_body
                         
-                        with open(sfa, "rb") as f:
-                            msg.add_attachment(f.read(), maintype="application", subtype="pdf", filename=file_name)
-                        
-                        status_label.config(text=f"Sending {file_name} to {recipient}")
-                        smtp.send_message(msg)
-                        sent_count += 1
-                        progress_bar["value"] = sent_count
-                        status_label.config(text=f"Sent {sent_count}/{maximum}: {file_name} to {recipient}")
-                        log_event(event="EMAIL_SENT", detail=f"File: {file_name} | Recipient: {recipient}", base_path=BASE_PATH)
-                        track("EMAIL_SENT")
-                        track("SINGLE_FILE_ATTACHMENT")
+                    if not phone:
+                        continue
+                    
+                    send_whatsapp(student_name, phone, message)
+                    print("whatsapp service executed")
+                
+                sent_count += 1
+                progress_bar["value"] = sent_count
+                status_label.config(text=f"Sent {sent_count}/{maximum}: {file_name} to {recipient}")
+                log_event(event="EMAIL_SENT", detail=f"File: {file_name} | Recipient: {recipient}", base_path=BASE_PATH)
+                track("EMAIL_SENT")
+                track("SINGLE_FILE_ATTACHMENT")
                     
         smtp.quit()
         status_label.config(text=f"All {sent_count} files mailed successfully!")
         messagebox.showinfo("Done", f"All {sent_count} files mailed successfully!")
+        print("The service is up and running")
     
     except smtplib.SMTPAuthenticationError: 
         status_label.config(text="❌ Authentication failed — please check your email or app password.")
@@ -379,11 +431,11 @@ def create_gui():
     # Academic session
     month, year = datetime.now().month, datetime.now().year
     if month >= 9:
-        academic_session = f"{year}-{year+1}"
-        term = "Salvation Term"
+        academic_session = f"{year}_{year+1}"
+        term = "Salvation_Term"
     else:
-        academic_session = f"{year-1}-{year}"
-        term = "Victory Term" if month >= 4 else "Redemption Term"
+        academic_session = f"{year-1}_{year}"
+        term = "Victory_Term" if month >= 4 else "Redemption_Term"
     
     input_dir = tk.StringVar()
     sfa_file_path = tk.StringVar()
@@ -474,18 +526,18 @@ def create_gui():
     
     # --- Frames ---
     pdf_frame = tk.LabelFrame(root, text="PDF Splitter", bd=3, relief="ridge")
-    pdf_frame.pack(padx=20, pady=10, fill="x")
+    pdf_frame.pack(padx=20, pady=3, fill="x")
     check_frame = tk.LabelFrame(pdf_frame, text="custom settings", bd=1, relief="solid")
     check_frame.pack(pady=2)
     mail_frame = tk.LabelFrame(root, text="Email Dispatcher", bd=3, relief="ridge")
     mail_frame.columnconfigure(0, weight=1)  # left spacer
     mail_frame.columnconfigure(1, weight=0)  # content
     mail_frame.columnconfigure(2, weight=1)  # right spacer
-    mail_frame.pack(padx=20, pady=10, fill="x")
+    mail_frame.pack(padx=20, pady=3, fill="x")
     recipient_frame = tk.LabelFrame(mail_frame, text="Recipient Category", bd=1, relief="solid")
-    recipient_frame.grid(row=0, column=1, pady=5)
+    recipient_frame.grid(row=0, column=1, pady=2)
     status_frame = tk.LabelFrame(root, text="Status", bd=3, relief="ridge")
-    status_frame.pack(padx=20, pady=10, fill="x")
+    status_frame.pack(padx=20, pady=3, fill="x")
 
     # --- PDF Splitter ---
     def update_label_text():
@@ -535,18 +587,18 @@ def create_gui():
     custom_var.trace_add("write", lambda *args: update_label_text())
     
     file_label = ttk.Label(pdf_frame, text="Select input folder")
-    file_label.pack(pady=5)
+    file_label.pack(pady=2)
     file_entry = ttk.Entry(pdf_frame, width=55, state="readonly")
-    file_entry.pack(pady=5)
+    file_entry.pack(pady=2)
     file_entry.config(textvariable=input_dir)
     
     browse_butn = ttk.Button(pdf_frame, text="Browse", command=lambda: input_dir.set(filedialog.askdirectory()) if custom_var.get() == 'chunk' else sfa_file_path.set(filedialog.askopenfilename()))
-    browse_butn.pack(pady=5)
+    browse_butn.pack(pady=2)
 
     progress_bar = ttk.Progressbar(status_frame, orient="horizontal", length=500, mode="determinate")
-    progress_bar.pack(pady=5)
+    progress_bar.pack(pady=2)
     status_label = ttk.Label(status_frame, text="Status: Waiting")
-    status_label.pack(pady=5)
+    status_label.pack(pady=2)
 
     #Split thread
     def run_split():
@@ -565,7 +617,7 @@ def create_gui():
             
     split_butn = ttk.Button(pdf_frame, text="Split PDFs",
                command=run_split, state = 'disabled')
-    split_butn.pack(pady=5)
+    split_butn.pack(pady=2)
     
     category_var = tk.StringVar(value="None")
     cr_file_path = tk.StringVar()
@@ -596,7 +648,7 @@ def create_gui():
     cr_frame = ttk.Frame(recipient_frame)
     upload_butn = ttk.Button(cr_frame, text="Browse",
                             command=validate_cr )
-    upload_butn.pack(pady=5)
+    upload_butn.pack(pady=2)
     cr_frame.grid(row=1, column=0, columnspan=2)
     cr_frame.grid_remove()
     category_var.trace_add("write", lambda *args: cr_frame.grid() if category_var.get()=="Recipients" else cr_frame.grid_remove())
@@ -604,25 +656,28 @@ def create_gui():
     
     # --- Sender Email & Message body ---
     email_var = tk.StringVar()
-    ttk.Label(mail_frame, text="Sender Email:").grid(row=3, column=1, pady=5)
+    ttk.Label(mail_frame, text="Sender Email:").grid(row=3, column=1, pady=2)
     sender_entry = ttk.Entry(mail_frame, width=50, textvariable=email_var)
-    sender_entry.grid(row=4, column=1, pady=5)
+    sender_entry.grid(row=4, column=1, pady=2)
     sender_entry.bind("<FocusOut>", validate_email_ui)
     sender_entry.bind("<KeyRelease>", validate_butn)
     
     msg_body_var = tk.IntVar()
     msg_body = ttk.Checkbutton(mail_frame, text="Set message body text", variable=msg_body_var)
-    msg_body.grid(row=5, column=1, pady=5)
+    msg_body.grid(row=5, column=1, pady=2)
+    whatsapp_var = tk.IntVar()
+    whatsapp = ttk.Checkbutton(mail_frame, text="Dispatch to Whatsapp", variable=whatsapp_var)
+    whatsapp.grid(row=6, column=1, pady=2)
     
     text_frame = ttk.Frame(mail_frame)
-    text_frame.grid(row=6, column=1, sticky="ew", pady=2)
+    text_frame.grid(row=7, column=1, sticky="ew", pady=2)
     text_frame.columnconfigure(0, weight=1)  # left spacer
     text_frame.columnconfigure(1, weight=0)  # content
     text_frame.columnconfigure(2, weight=1)  # right spacer
     text_frame.grid_remove()
     msg_label = ttk.Label(text_frame, text="Message / Email Body text:")
     msg_label.grid(row=0, column=1, sticky="w")
-    msg_text = tk.Text(text_frame, height=5, width=50, wrap="word")
+    msg_text = tk.Text(text_frame, height=2, width=50, wrap="word")
     msg_text.grid(row=1, column=1)
     msg_text.bind("<KeyRelease>", validate_butn)
     msg_body_var.trace_add("write", lambda *args: text_frame.grid() if msg_body_var.get()==1 else text_frame.grid_remove())
@@ -659,12 +714,12 @@ def create_gui():
     #Email dispath thread
     def run_mail():
         threading.Thread(
-            target=lambda: send_emails(password_var.get(), email_var.get(), input_dir.get(), sfa_file_path.get(), category_var.get(), cr_file_path.get(), msg_text.get("1.0","end-1c"), progress_bar, status_label, term, academic_session),
+            target=lambda: send_emails(password_var.get(), email_var.get(), input_dir.get(), whatsapp_var.get(), sfa_file_path.get(), category_var.get(), cr_file_path.get(), msg_text.get("1.0","end-1c"), progress_bar, status_label, term, academic_session),
             daemon=True
         ).start()
     
     send_butn = ttk.Button(mail_frame, text="Dispatch Documents", command=run_mail, state = 'disabled')
-    send_butn.grid(row=11, column=1, pady=5)
+    send_butn.grid(row=11, column=1, pady=2)
 
     root.mainloop()
 
