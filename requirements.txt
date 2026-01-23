@@ -5,3 +5,9 @@ reportlab
 cryptography
 matplotlib
 python-dateutil
+twilio
+dropbox
+tqdm
+openpyxl
+python-dotenv
+
