@@ -35,7 +35,7 @@ def get_dropbox_client():
         app_secret=APP_SECRET
     )
 
-def ensure_folder_exists(dbx, dropbox_folder):
+def ensure_folder_exists(dbx, dropbox_folder, status_label):
     try:
         dbx.files_get_metadata(dropbox_folder)
     except ApiError as e:
@@ -45,6 +45,7 @@ def ensure_folder_exists(dbx, dropbox_folder):
         ):
             try:
                 dbx.files_create_folder_v2(dropbox_folder)
+                status_label.config(text=f"Created Dropbox folder: {dropbox_folder}")
                 print(f"Created Dropbox folder: {dropbox_folder}")
             except ApiError as ce:
                 # Folder may already exist due to race condition
@@ -67,7 +68,7 @@ def get_or_create_shared_link(dbx, path):
 
     return dbx.sharing_create_shared_link_with_settings(path).url
 
-def auto_uploader(output_dir, term, academic_session, sfa):
+def auto_uploader(output_dir, term, academic_session, sfa, status_label):
 
     LOCAL_FOLDER = output_dir
     DROPBOX_FOLDER = (f"/AutoUploads_{term}_{academic_session}" if not sfa else
@@ -81,7 +82,7 @@ def auto_uploader(output_dir, term, academic_session, sfa):
     dbx = get_dropbox_client()
 
     # Ensure folder exists
-    ensure_folder_exists(dbx, DROPBOX_FOLDER)
+    ensure_folder_exists(dbx, DROPBOX_FOLDER, status_label)
     print("hereeeeee!")
 
     # ---------------------------
@@ -165,6 +166,7 @@ def auto_uploader(output_dir, term, academic_session, sfa):
         link = link.replace("&dl=0", "&dl=1")
 
         uploaded_links[filename] = link
+        status_label.config(text=f"{filename} uploaded & linked: {link}")
         print(f"Uploaded + linked: {filename} | {link}")
 
 
