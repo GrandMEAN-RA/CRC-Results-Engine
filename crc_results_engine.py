@@ -104,7 +104,7 @@ def send_emails(password_var, email_var, input_dir, whatsapp_var, sfa_file_path,
     output_dir = ensure_output_folder(input_dir, academic_session, term) if not sfa else sfa_file_path
 
     if whatsapp_var:
-         media_link = auto_uploader(output_dir, term, academic_session, sfa)
+         media_link = auto_uploader(output_dir, term, academic_session, sfa, status_label)
     
     try: 
         # Connect to the mail server
@@ -139,6 +139,7 @@ def send_emails(password_var, email_var, input_dir, whatsapp_var, sfa_file_path,
                 print("Student name: ",student_name)
                 
                 if category == "Students":
+                    whatsapp_var.set(0)
                     recipient = f"{firstname.lower()}.{surname.lower()}@crcchristhill.org"
                     msg["Subject"] = "Your {session} Results Document"
                     msg_body = f"Dear {student_name.replace("_","")},\n the entire management and staff of Christ The Redeemer's College-Christhill warmly appreciate your efforts towards achieving good academic performance this term. We ubiquitously encourage you to push harder next term for better results. \n Please, find attached your results for {session} academic session"
@@ -199,12 +200,17 @@ def send_emails(password_var, email_var, input_dir, whatsapp_var, sfa_file_path,
                     if not row_phone.empty:
                         phone = row_phone.iloc[0][phone_col]
                         media_url = media_link[pdf_file]
-                        message = f"Dear Mr. & Mrs. {surname},\n the entire management and staff of Christ The Redeemer's College-Christhill warmly appreciate {firstname}'s efforts towards achieving good academic performance this term. We ubiquitously appreciate you also for your investments financially, and commitment to responding promptly to the school's demands to this regards. We believe next term will be better than this. \n Please, download {session} result document for {student_name} here: {media_url}"
+                        message = (msg_text + " " + "\n Please, download {session} result document for {student_name} here: {media_url}" if msg_text else 
+                                   f"Dear Mr. & Mrs. {surname}, \n the entire management and staff of Christ The Redeemer's College-Christhill \
+                                   warmly appreciate {firstname}'s efforts towards achieving good academic performance this term. \
+                                   We ubiquitously appreciate you also for your investments financially, and commitment to responding promptly to the school's \
+                                   demands to this regards. We believe next term will be better than this. \n Please, download {session} result document \
+                                   for {student_name} here: {media_url}")
                         
                     if not phone:
                         continue
                     
-                    send_whatsapp(student_name, phone, message)
+                    send_whatsapp(student_name, phone, message, status_label)
                     print("whatsapp service executed")
                 
                 sent_count += 1
@@ -261,7 +267,7 @@ def send_emails(password_var, email_var, input_dir, whatsapp_var, sfa_file_path,
                     if not phone:
                         continue
                     
-                    send_whatsapp(student_name, phone, message)
+                    send_whatsapp(student_name, phone, message, status_label)
                     print("whatsapp service executed")
                 
                 sent_count += 1
