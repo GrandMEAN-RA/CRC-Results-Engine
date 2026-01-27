@@ -3,7 +3,13 @@
 Created on Wed Nov 12 23:06:58 2025
 
 @author: EBUNOLUWASIMI
+<<<<<<< HEAD
+"""
+# -*- coding: utf-8 -*-
+"""
+=======
 
+>>>>>>> updates
 Document Splitter & Mailer GUI
 Now with Email Sending Progress Bar
 """
@@ -45,7 +51,7 @@ def ensure_output_folder(base_dir, academic_session, term):
     return output_dir
 
 # =====================================================
-# PDF Split function
+# 🧾 PDF Split function
 # =====================================================
 def split_pdfs(input_dir, chunk_var, progress_bar, status_label, academic_session, term):
     output_dir = ensure_output_folder(input_dir, academic_session, term)
