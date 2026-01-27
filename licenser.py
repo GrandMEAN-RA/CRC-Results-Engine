@@ -12,9 +12,7 @@ import uuid
 import hashlib
 
 def get_machine_fingerprint():
-    """
-    Generates a stable machine fingerprint (offline-safe).
-    """
+    
     mac = uuid.getnode()
     raw = f"CRC-{mac}"
     return hashlib.sha256(raw.encode()).hexdigest()
@@ -23,12 +21,11 @@ def create_license(fernet, BASE_PATH: path):
     today = date.today()
     lic_per = 1
     _exp = today + relativedelta(months = lic_per)
-    print("creating license!!!")
     
     license_data = {
         "licensed_by": "GrandMEAN Technologies",
-        "licensed_to": "GrandMEAN Research & Analytics",
-        "short_name": "GrandMEAN-RA",
+        "licensed_to": "Christ The Redeemer's College-Christhill",
+        "short_name": "CRC-Christhill",
         "product": "Docs Engine – Document Processing Engine",
         "issued_date": datetime.now().strftime('%Y-%m-%d'),
         "license_period": f"{lic_per}-month" if lic_per == 1 else f'{lic_per}-months', # ✅ 1 MONTH
@@ -37,12 +34,12 @@ def create_license(fernet, BASE_PATH: path):
         "machine_id": get_machine_fingerprint(),
         "branding": {
         "primary_color": "#0A3D62",
-        "footer_text": "Powered by GrandMEAN Technologies © 2025"
+        "footer_text": "GrandMEAN Technologies Inc. © 2025"
       }
     }
 
     license_data['raw_id'] = f"{license_data['short_name']}-{license_data['machine_id']}"
-    print('licence created: ', license_data)
+    
     eula = (f"Docs Engine– Document Processing Engine. \n"
             "Licensed exclusively to: {license_data['licensed to']}. \n\n"
             "This software is licensed for internal institutional use only."
@@ -81,13 +78,11 @@ def bootstrap_license(BASE_PATH: path):
 
 def load_license(fernet, BASE_PATH: path):
     if not license_exists(BASE_PATH):
-        print('license not found: ',lic_exists)
-        return {"not_found": True, "days_left": 0} # trigger auto-creation
+        return {"not_found": True, "days_left": 0} 
     
     try:
         license_file = BASE_PATH / "license.lic"
         decrypted = fernet.decrypt(license_file.read_bytes())
-        print('license found')
         return json.loads(decrypted.decode())
     except Exception:
         log_event(event="LICENSE", detail="License corrupted or tampered", base_path=BASE_PATH)
@@ -95,21 +90,18 @@ def load_license(fernet, BASE_PATH: path):
 
 def check_license(fernet, BASE_PATH: path):
     _license = load_license(fernet, BASE_PATH)
-    print('lic: ',_license)
     today = datetime.now().date()
-    print('valid license: ',_license)
+    
     if not _license and _license.get("not_found", True):
-        print("i'm here!!!")
         return {"not_found": True, "days_left": 0}
 
     if _license.get("machine_id") != get_machine_fingerprint():
         log_event(event="LICENSE", detail="Machine mismatch", base_path=BASE_PATH)
-        print('mismatched')
         return {"expired": True, "days_left": 0}
 
     expiry = datetime.strptime(_license["expiry_date"], "%Y-%m-%d").date()
     days_left = (expiry - today).days
-    print('returning payload')
+    print('returning license payload')
     return {
         "license_to": _license.get("licensed_to"),
         "expired": days_left < 0,
@@ -128,7 +120,7 @@ def ensure_license(fernet, BASE_PATH: path):
     status = check_license(fernet, BASE_PATH)
     if status.get("expired"):
         show_expiry_warning(status["days_left"])
-        #restrict_features()
+
     if status.get("machine_mismatch"):
         raise RuntimeError("License machine mismatch")
     return status
@@ -143,7 +135,7 @@ def apply_license_renewal(fernet, BASE_PATH: Path):
         return False
 
     _license = load_license(fernet, BASE_PATH)
-    if not _license or _license.get("not_found", True):
+    if not _license and _license.get("not_found", True):
         return False
 
     try:
@@ -167,8 +159,9 @@ def apply_license_renewal(fernet, BASE_PATH: Path):
 
 def get_branding(fernet, BASE_PATH: Path):
     _license = load_license(fernet, BASE_PATH)
-
-    if not _license or _license.get("not_found", True):
+    
+    if not _license and _license.get("not_found", True):
+        
         return {
             "school_name": "Docs Engine",
             "short_name": "Docs Engine",
@@ -177,12 +170,12 @@ def get_branding(fernet, BASE_PATH: Path):
         }
 
     branding = _license.get("branding", {})
-
+    
     return {
-        "school_name": _license.get("licensed_to", "Docs Engine"),
-        "short_name": _license.get("short_name", "Docs Engine"),
-        "footer_text": branding.get("footer_text", ""),
-        "primary_color": branding.get("primary_color", "#000000"),
+        "school_name": _license.get("licensed_to"),
+        "short_name": _license.get("short_name"),
+        "footer_text": branding.get("footer_text"),
+        "primary_color": branding.get("primary_color"),
     }
 
 

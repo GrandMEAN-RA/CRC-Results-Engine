@@ -70,7 +70,7 @@ def get_or_create_shared_link(dbx, path):
 
 def auto_uploader(output_dir, term, academic_session, sfa, status_label):
 
-    LOCAL_FOLDER = output_dir
+    LOCAL_FOLDER = output_dir if not sfa else sfa
     DROPBOX_FOLDER = (f"/AutoUploads_{term}_{academic_session}" if not sfa else
                         f"/AutoUploads_{term}_{academic_session}_sfa")
         
@@ -83,7 +83,6 @@ def auto_uploader(output_dir, term, academic_session, sfa, status_label):
 
     # Ensure folder exists
     ensure_folder_exists(dbx, DROPBOX_FOLDER, status_label)
-    print("hereeeeee!")
 
     # ---------------------------
     # UPLOAD FILES
