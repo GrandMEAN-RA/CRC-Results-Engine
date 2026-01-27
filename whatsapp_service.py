@@ -18,26 +18,18 @@ missing = [
     }.items() if not value
 ]
 
-print("Looking for .env at:", BASE_DIR / ".env")
-print("Exists:", (BASE_DIR / ".env").exists())
-
 if missing:
     raise RuntimeError(f"Missing Twilio env vars: {', '.join(missing)}")
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
-def send_whatsapp(student_name, phone, message, status_label):
-
+def send_whatsapp(phone, message):
+    
     msg = client.messages.create(
     from_="whatsapp:+14155238886",
     to=f"whatsapp:{phone}",
     body=message
     )
-
-    status_label.config(text=f"Sending Results document for {student_name.replace('_'," ")} to WhatsApp number +{phone}")
-    print(f"Sending Results document for {student_name.replace('_'," ")} to WhatsApp number +{phone}")
-
-    print("Twilio SID:", msg.sid)
-    print("Status:", msg.status)
     
-    return msg.sid
+    return msg.status
+
